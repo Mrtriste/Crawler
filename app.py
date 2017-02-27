@@ -14,8 +14,6 @@ import smtplib
 from email.mime.text import MIMEText
 import time
 
-
-
 def send_to_mail(smtp,date,title,link):
 	for i in receivers:
 		msg = MIMEText(link)
