@@ -13,26 +13,64 @@ from config import *
 import smtplib
 from email.mime.text import MIMEText
 import time
+import sys
+import json
+from slackclient import SlackClient
+import sqlite3
+import string
+
+def save_to_db(tuples):
+	try:
+		conn = sqlite3.connect('blog.db')
+		sql = "CREATE TABLE IF NOT EXISTS blog (ID integer PRIMARY KEY,domain varchar,title varchar,url varchar,blog_date TEXT,insert_date TEXT)"
+		conn.execute(sql)  
+		cs = conn.cursor()
+		try:
+			for i in tuples:
+				local_time = time.strftime("%Y-%m-%d %H:%M:%S",time.localtime(time.time()))
+				cs.execute("insert into blog values(null,?,?,?,?,?)",(i[2].split('/')[2],i[1],i[2],i[3],local_time))
+		except sqlite3.OperationalError,e:
+			print 'OperationalError:'+e
+
+		conn.commit()
+		cs.close()
+		conn.close()
+	except Exception,e:
+		print 'catch exception:'+e
+
+def send_slack(slack_client,date,title,link):
+	try:
+		text = '[howto][%s][%s]%s'%(link.split('/')[2],date,title)+'\n'+link
+		print 'slack:'+filter(lambda x: x in string.printable, text)
+		slack_client.api_call("chat.postMessage", channel=channel,text=text, as_user=True)
+	except Exception,e:
+		print e
 
 def send_to_mail(smtp,date,title,link):
 	for i in receivers:
 		msg = MIMEText(link)
 		msg['From'] = sender
 		msg['To'] = i
-		msg['Subject'] = '[%s][%s]%s'%(home.split('/')[2],date,title)
+		msg['Subject'] = '[howto][%s][%s]%s'%(link.split('/')[2],date,title)
 		for cnt in range(0,try_conn_mail_cnt):
 			try:
+				print 'send a mail:'+filter(lambda x: x in string.printable,msg['Subject']+' to '+i)
 				smtp.sendmail(sender, i, msg.as_string())
-				print 'send a mail:'+msg['Subject']
+				time.sleep(send_mail_interval)
 				break
-			except SMTPDataError,e:
-				print "SMTPDataError:"+e.
-			except SMTPServerDisconnected,e:
+			except smtplib.SMTPDataError,e:
+				print "SMTPDataError:"+e
+			except smtplib.SMTPServerDisconnected,e:
 				print 'Disconnected,try reconnect:'+str(cnt)
-				smtp = smtplib.SMTP_SSL('smtp.qq.com', 465)
+				smtp = smtplib.SMTP_SSL(server, port)
 				smtp.login(sender, pwd)
+			except Exception,e:
+				print e
+
 
 if __name__ == "__main__":
+	reload(sys)
+	sys.setdefaultencoding('utf-8')
 	#record.txt records {home:last_latest_article_link},to judge if an article is new
 	if not os.path.exists('./record.txt'):
 		file = open('./record.txt','w')
@@ -40,6 +78,7 @@ if __name__ == "__main__":
 			file.write(i+',\n')
 		file.close()
 	while True:
+		print '-----------------start------------------'
 		last_title_dict = {}
 		record_file = open('./record.txt','r')
 		#read record file to dict
@@ -75,15 +114,25 @@ if __name__ == "__main__":
 			index = index+1
 
 		if tuples:
-			smtp = smtplib.SMTP_SSL('smtp.qq.com', 465)
-			smtp.login(sender, pwd)
+			####################login mail
+			#smtp = smtplib.SMTP_SSL(server, port)
+			#smtp.login(sender, pwd)
+			####################get slack client
+			slack_client = SlackClient(token)
 			for date_title in tuples:
-			 	#print 'date:'+date_title[0]+' title:'+date_title[1]+' link:'+date_title[2]
-			 	send_to_mail(smtp,date_title[0],date_title[1],date_title[2])
+				#############################send by mail
+			 	#send_to_mail(smtp,date_title[0],date_title[1],date_title[2])
+			 	#############################send by slack
+			 	send_slack(slack_client,date_title[0],date_title[1],date_title[2])
+			###################logout mail
+			#smtp.close()
+			save_to_db(tuples)
+
+
 
 		record_file = open('./record.txt','w+')
 		for c in crawler_list:	
 			record_file.write(c.get_write_content())
 		record_file.close()
-		print '----------------end------------------'
-		time.sleep(1800)
+		print '-----------------end------------------'
+		time.sleep(refresh_time)
