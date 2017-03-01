@@ -19,6 +19,7 @@ from slackclient import SlackClient
 import sqlite3
 import string
 
+
 def save_to_db(tuples):
 	try:
 		conn = sqlite3.connect('blog.db')
