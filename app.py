@@ -16,7 +16,7 @@ import time
 import sys
 import json
 from slackclient import SlackClient
-import sqlite3
+#import sqlite3
 import string
 
 def save_to_db(tuples):
@@ -115,17 +115,18 @@ if __name__ == "__main__":
 
 		if tuples:
 			####################login mail
-			#smtp = smtplib.SMTP_SSL(server, port)
-			#smtp.login(sender, pwd)
+			smtp = smtplib.SMTP_SSL(server, port)
+			smtp.login(sender, pwd)
 			####################get slack client
 			slack_client = SlackClient(token)
 			for date_title in tuples:
+				print date_title[0]+' '+date_title[1]+' '+date_title[2]#+' '+date_title[3]
 				#############################send by mail
-			 	#send_to_mail(smtp,date_title[0],date_title[1],date_title[2])
+			 	send_to_mail(smtp,date_title[0],date_title[1],date_title[2])
 			 	#############################send by slack
 			 	send_slack(slack_client,date_title[0],date_title[1],date_title[2])
 			###################logout mail
-			#smtp.close()
+			smtp.close()
 			save_to_db(tuples)
 
 
