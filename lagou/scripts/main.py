@@ -13,12 +13,17 @@ from bs4 import BeautifulSoup
 from bs4 import element
 import string
 import traceback
+import ssl
 
 # str转bytes叫encode，bytes转str叫decode str就是unicode字符
 # http://blog.csdn.net/jim7424994/article/details/22675759
 
 reload(sys)
 sys.setdefaultencoding('utf-8') 
+ssl._create_default_https_context = ssl._create_unverified_context
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+# 禁用安全请求警告
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 def crawl_id():
 	c = BaseCrawler()
