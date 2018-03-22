@@ -31,7 +31,7 @@ class BaseCrawler(object):
 
 		for i in range(0,try_num):
 			try:
-				response = requests.post(url,headers=headers,data=data, proxies=proxies) #
+				response = requests.post(url,headers=headers,data=data, proxies=proxies,verify=False) #
 				data = response.text
 				d = json.loads(data)
 				if d['success'] != True:
@@ -58,7 +58,7 @@ class BaseCrawler(object):
 		}
 		for i in range(0,try_num):
 			try:
-				response = requests.get(url,headers=headers,proxies=proxies) # 
+				response = requests.get(url,headers=headers,proxies=proxies,verify=False) # 
 				data = response.text
 				return data
 			except Exception,e:
@@ -277,7 +277,7 @@ class IdCrawlerThread(threading.Thread):
 				print '--------json error-------'
 				print e
 				self.except_lock.acquire()
-				file = open('../except/'+id_except_filename)
+				file = open('../except/'+id_except_filename,'a')
 				file.write(item[0]+'\t'+item[1]+'\t'+str(item[2])+'\n')
 				self.except_lock.release()
 
